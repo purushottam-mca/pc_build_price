@@ -1,27 +1,32 @@
-// Categories List
 const categories = [
-    'Processor', 
-    'Motherboard', 
-    'Graphic Card', 
-    'Memory (RAM)',
-    'SSD Drive',
-    'Hard Disk (HDD)',
-    'Power Supply', 
-    'Cabinet', 
-    'Monitor', 
-    'CPU Cooler', 
-    'Keyboard', 
-    'Mouse', 
-    'Mousepad',
-    'Headphones',
-    'Speaker',
-    'Gaming Controller',
-    'UPS',              
+    'Cabinet',
     'Case Fans',
-    'Other'
-];
+    'CPU Cooler',
+    'Docking Station',
+    'Games',
+    'Gaming Chair',
+    'Gaming Console',
+    'Gaming Controller',
+    'Gaming Desk',
+    'Graphic Card',
+    'Hard Disk (HDD)',
+    'Headphones',
+    'Keyboard',
+    'Memory (RAM)',
+    'Monitor',
+    'Mouse',
+    'Mousepad',
+    'Motherboard',
+    'Other',
+    'Power Supply',
+    'Processor',
+    'RGB Light',
+    'Speaker',
+    'SSD Drive',
+    'UPS',
+    'VR Headset'
+].sort();
 
-// Category Icon Map
 const iconMap = {
     'Processor': 'fa-microchip',
     'Motherboard': 'fa-server',
@@ -41,39 +46,59 @@ const iconMap = {
     'Gaming Controller': 'fa-gamepad',
     'UPS': 'fa-battery-full',
     'Case Fans': 'fa-wind',
+    'Gaming Chair': 'fa-chair',
+    'Gaming Desk': 'fa-table',
+    'RGB Light': 'fa-lightbulb',
+    'Docking Station': 'fa-network-wired',
+    'Gaming Console': 'fa-vr-cardboard',
+    'VR Headset': 'fa-vr-cardboard',
+    'Games': 'fa-compact-disc',
     'Other': 'fa-cube'
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    clearBuild();
-    
-    // Setup Drag and Drop
-    const container = document.getElementById('build-body');
-    setupDragDrop(container);
+    // 1. Check Local Storage First
+    const localData = localStorage.getItem('pc_build_data');
 
-    // Attempt to load 'default_build.json'
+    if (localData) {
+        const data = JSON.parse(localData);
+        if (Array.isArray(data) && data.length > 0) {
+            document.getElementById('build-body').innerHTML = '';
+            data.forEach(item => addRow(item.category, item.product, item.price, item.source));
+            calculateTotal();
+        } else {
+            // Local storage empty/invalid, try default file
+            loadFromDefaultFile();
+        }
+    } else {
+        // No local storage, try default file
+        loadFromDefaultFile();
+    }
+
+    setupDragDrop(document.getElementById('build-body'));
+});
+
+// Helper for the default file fallback
+function loadFromDefaultFile() {
     fetch('./default_build.json')
         .then(response => {
-            // If file exists (200 OK), parse JSON. If not (404), return null.
-            return response.ok ? response.json() : null;
+           if (response.ok) {
+                return response.json();
+            } else {
+                console.info("Info: No default_build.json found. Loading empty template.");
+                return null;
+            }
         })
         .then(data => {
             if (data && Array.isArray(data)) {
-                data.forEach(item => {
-                    addRow(item.category, item.product, item.price, item.source);
-                });
-                calculateTotal();
+                data.forEach(item => addRow(item.category, item.product, item.price, item.source));
             } else {
-                // File missing or invalid format: Load defaults silently
                 loadStandardDefaults();
             }
         })
-        .catch(() => {
-            loadStandardDefaults();
-        });
-});
+        .catch(() => loadStandardDefaults());
+}
 
-// Helper function to load the hardcoded list
 function loadStandardDefaults() {
     const defaultSet = [
         'Processor', 'Motherboard', 'Graphic Card', 'Memory (RAM)', 
@@ -91,10 +116,10 @@ function getIconClass(category) {
     return iconMap[category] || 'fa-cube';
 }
 
-function updateIcon(selectElement) {
-    const icon = selectElement.previousElementSibling;
-    const newClass = getIconClass(selectElement.value);
-    icon.className = `fas ${newClass} cat-icon`;
+function updateIcon(select) {
+    const icon = select.previousElementSibling;
+    icon.className = `fas ${iconMap[select.value] || 'fa-cube'} cat-icon`;
+    saveToLocal();
 }
 
 function getCategoryOptions(selectedCategory) {
@@ -106,22 +131,17 @@ function getCategoryOptions(selectedCategory) {
 function addRow(category = 'Processor', product = '', price = '', source = '') {
     const tbody = document.getElementById('build-body');
     const row = document.createElement('tr');
-    
-    // Make row draggable
-    row.classList.add('draggable-row');
-    row.setAttribute('draggable', 'true');
+    row.className = 'draggable-row';
+    row.draggable = true;
 
-    const initialIcon = getIconClass(category);
-    
+    // Added saveToLocal() triggers to inputs and select
     row.innerHTML = `
-        <td class="drag-handle" title="Drag to reorder">
-            <i class="fas fa-grip-vertical"></i>
-        </td>
+        <td class="drag-handle"><i class="fas fa-grip-vertical"></i></td>
         <td>
             <div class="cat-wrapper">
-                <i class="fas ${initialIcon} cat-icon"></i>
+                <i class="fas ${iconMap[category] || 'fa-cube'} cat-icon"></i>
                 <select onchange="updateIcon(this)">
-                    ${getCategoryOptions(category)}
+                    ${categories.map(c => `<option value="${c}" ${c === category ? 'selected' : ''}>${c}</option>`).join('')}
                 </select>
             </div>
         </td>
@@ -139,30 +159,24 @@ function addRow(category = 'Processor', product = '', price = '', source = '') {
         </td>
     `;
     
-    // Add Event Listeners for Dragging to this specific row
     addDragEvents(row);
-
     tbody.appendChild(row);
-    
-    const textarea = row.querySelector('textarea');
-    autoResize(textarea);
+    autoResize(row.querySelector('textarea'));
+    saveToLocal(); // Save immediately when added
 }
 
-// --- Drag and Drop Logic ---
-
+// Drag and Drop
 function addDragEvents(row) {
-    row.addEventListener('dragstart', () => {
-        row.classList.add('dragging');
-    });
-
+    row.addEventListener('dragstart', () => row.classList.add('dragging'));
     row.addEventListener('dragend', () => {
         row.classList.remove('dragging');
+        saveToLocal();
     });
 }
 
 function setupDragDrop(container) {
     container.addEventListener('dragover', e => {
-        e.preventDefault(); // Allow dropping
+        e.preventDefault();
         
         const afterElement = getDragAfterElement(container, e.clientY);
         const draggable = document.querySelector('.dragging');
@@ -197,11 +211,12 @@ function getDragAfterElement(container, y) {
 
 function deleteRow(btn) {
     btn.closest('tr').remove();
-    calculateTotal();
+    saveToLocal();
 }
 
 function clearBuild() {
     document.getElementById('build-body').innerHTML = '';
+    localStorage.removeItem('pc_build_data');
     calculateTotal();
 }
 
@@ -214,6 +229,17 @@ function calculateTotal() {
     });
     document.getElementById('total-price').textContent = '₹ ' + total.toLocaleString('en-IN');
     return total;
+}
+
+function saveToLocal() {
+    const data = [...document.querySelectorAll('#build-body tr')].map(row => ({
+        category: row.querySelector('td:nth-child(2) select').value,
+        product: row.querySelector('td:nth-child(3) textarea').value,
+        price: row.querySelector('td:nth-child(4) input').value,
+        source: row.querySelector('td:nth-child(5) input').value
+    }));
+    localStorage.setItem('pc_build_data', JSON.stringify(data));
+    calculateTotal();
 }
 
 function autoResize(textarea) {
@@ -260,7 +286,7 @@ function loadBuild(input) {
                 data.forEach(item => {
                     addRow(item.category, item.product, item.price, item.source);
                 });
-                calculateTotal();
+                saveToLocal();
             } else {
                 alert("Invalid JSON format");
             }
@@ -276,7 +302,7 @@ function copyRedditMarkup() {
     const rows = document.querySelectorAll('#build-body tr');
     let total = calculateTotal();
     
-    let markdown = `[PCPriceTracker Build](https://pcpricetracker.in/b/s/custom)\n\n`;
+    let markdown = `Custom PC Build\n\n`;
     markdown += `Category|Selection|Source|Price\n`;
     markdown += `:----|:----|:----|----:\n`;
 

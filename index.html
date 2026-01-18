@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PC Build Price Tracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container" id="capture-area">
+        <header class="header">
+            <div class="title-group">
+                <h1><i class="fas fa-desktop" style="margin-right: 10px; color: var(--accent-color);"></i>PC Build Configurator</h1>
+            </div>
+            
+            <div class="header-actions">
+                <input type="file" id="jsonLoadInput" accept=".json" style="display:none" onchange="loadBuild(this)">
+                
+                <button class="btn-secondary" onclick="document.getElementById('jsonLoadInput').click()">
+                    <i class="fas fa-folder-open"></i> Load
+                </button>
+                <button class="btn-secondary" onclick="saveBuild()">
+                    <i class="fas fa-save"></i> Save
+                </button>
+                <button class="theme-toggle" onclick="toggleTheme()">
+                    <i class="fas fa-adjust"></i> Theme
+                </button>
+            </div>
+        </header>
+
+        <table class="build-table">
+            <thead>
+                <tr>
+                    <th class="col-drag"></th> <th class="col-cat">Category</th>
+                    <th class="col-prod">Product Name</th>
+                    <th class="col-price">Price (₹)</th>
+                    <th class="col-src">Source</th>
+                    <th class="col-action"></th>
+                </tr>
+            </thead>
+            <tbody id="build-body">
+                </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="3" style="text-align: right;">Total Estimate:</td>
+                    <td id="total-price" style="text-align: right;">₹ 0</td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="addRow()">
+                <i class="fas fa-plus"></i> Add Row
+            </button>
+            <button class="btn btn-danger" onclick="clearBuild()">
+                <i class="fas fa-trash"></i> Clear All
+            </button>
+            <button class="btn btn-reddit" onclick="copyRedditMarkup()">
+                <i class="fab fa-reddit"></i> Copy Reddit Markup
+            </button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
